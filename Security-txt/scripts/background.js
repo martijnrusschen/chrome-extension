@@ -14,7 +14,7 @@ function changeIcon(tabid, exists){
 
 function getSecuritytxt(domain, protocol, wk, tabid){
 	xhr = new XMLHttpRequest; xhr.open("GET", protocol+domain+wk+'security.txt'); xhr.onreadystatechange = function(){
-		if(xhr.status != 404 && xhr.getResponseHeader('content-type').startsWith('text/plain') && xhr.responseText.indexOf('Contact:')){
+		if(xhr.status != 404 && xhr.getResponseHeader('content-type').startsWith('text/plain') && xhr.responseText.indexOf('Contact:')!=-1){
 			UpdateStorage('hasSecuritytxt', 'set', domain+':'+wk);
 			changeIcon(tabid, true);
 		}else{
