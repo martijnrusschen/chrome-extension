@@ -1,5 +1,9 @@
-document.getElementById("defaultOpen").addEventListener("click", function(event){openTab(event, "securitytxt-content")})
-document.getElementById("History").addEventListener("click", function(event){openTab(event, "Historytab")})
+document.getElementById("defaultOpen").addEventListener("click", function(event) {
+    openTab(event, "securitytxt-content")
+})
+document.getElementById("History").addEventListener("click", function(event) {
+    openTab(event, "Historytab")
+})
 document.getElementById("defaultOpen").click();
 
 function openTab(evt, tabid) {
@@ -16,23 +20,31 @@ function openTab(evt, tabid) {
     evt.currentTarget.className += " active";
 }
 
-function LoadFromStorage(){
-    chrome.storage.local.get(function(callback){
+function LoadFromStorage() {
+    chrome.storage.local.get(function(callback) {
         storage = callback;
-        query = { active: true, currentWindow: true };
-        chrome.tabs.query(query, function(result){
+        query = {
+            active: true,
+            currentWindow: true
+        };
+        chrome.tabs.query(query, function(result) {
             domain = result[0].url.split('/')[2];
-            if(storage.hasSecuritytxt.indexOf(domain) > -1){
-                xhr = new XMLHttpRequest; xhr.onreadystatechange = function(){
+            if (storage.hasSecuritytxt.indexOf(domain) > -1) {
+                xhr = new XMLHttpRequest;
+                xhr.timeout = 10000;
+                xhr.ontimeout = function(e) {
+                    document.getElementById("securitytxt-pre").innerHTML = "Error: security.txt file is too big or is taking too long to retrieve.";
+                };
+                xhr.onreadystatechange = function() {
                     //It shouldn't be possible to XSS this but just in case.
                     contents = $('<div/>').text(xhr.responseText).html();
                     document.getElementById("securitytxt-pre").innerHTML = contents;
                 };
 
-                if(storage.location[storage.hasSecuritytxt.indexOf(domain)] == '/'){
-                    xhr.open("GET", result[0].url.split('/')[0]+'//'+domain+'/security.txt');
-                }else{
-                    xhr.open("GET", result[0].url.split('/')[0]+'//'+domain+'/.well-known/security.txt');
+                if (storage.location[storage.hasSecuritytxt.indexOf(domain)] == '/') {
+                    xhr.open("GET", result[0].url.split('/')[0] + '//' + domain + '/security.txt');
+                } else {
+                    xhr.open("GET", result[0].url.split('/')[0] + '//' + domain + '/.well-known/security.txt');
                 };
 
                 xhr.send();
