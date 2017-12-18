@@ -12,20 +12,40 @@ function changeIcon(tabid, exists) {
     }
 }
 
-function getSecuritytxt(domain, protocol, wk, tabid) {
-    xhr = new XMLHttpRequest;
-    xhr.open("GET", protocol + domain + wk + 'security.txt');
-    xhr.timeout = 10000;
-    xhr.onreadystatechange = function() {
-        if (xhr.status != 404 && xhr.getResponseHeader('content-type').startsWith('text/plain') && xhr.responseText.indexOf('Contact:') != -1) {
-            UpdateStorage('hasSecuritytxt', 'set', domain + ':' + wk);
-            changeIcon(tabid, true);
-        } else {
-            changeIcon(tabid, false);
-            return false
+function getSecuritytxt(url, domain, tabid, i, messaged) {
+    const consume = responseReader => {
+    return responseReader.read().then(result => {
+        if (result.done || chunks > 1) { return; }
+        const chunk = result.value;
+        chunks++
+
+        if (new TextDecoder("utf-8").decode(chunk).indexOf("Contact:") > -1) {
+        	response_string = new TextDecoder("utf-8").decode(chunk)
         }
-    };
-    xhr.send();
+
+        if (typeof messaged == "undefined"){
+            if (typeof response_string != "undefined") {
+                changeIcon(tabid, true)
+                obj = new Object; obj[domain] = locations[i]
+                UpdateStorage("hasSecuritytxt", "set", obj)
+            } else if(i == locations.length - 1) {
+                changeIcon(tabid, false)
+            }
+        }else{
+            chrome.runtime.sendMessage({"content": response_string})
+        }
+
+        return consume(responseReader);
+    	});
+	}
+	fetch(url).then(response => {
+		chunks = 0
+		if (response.status == 200 && response.headers.get("content-type").indexOf("text/plain") > -1 && response.redirected == false) {
+			setTimeout(function(){return consume(response.body.getReader())}, 200)
+		} else {
+            changeIcon(tabid, false)
+        }
+	})
 }
 
 function UpdateStorage(path, action, value) {
@@ -33,24 +53,27 @@ function UpdateStorage(path, action, value) {
         storage = callback;
         if (Object.keys(storage).length == 0) {
             chrome.storage.local.set({
-                "hasSecuritytxt": [],
-                "location": []
+                "hasSecuritytxt": {}
             })
         };
-        if (path == 'hasSecuritytxt') {
-            if (action == 'set' && storage.hasSecuritytxt.indexOf(value.split(':')[0]) < 0) {
-                storage.hasSecuritytxt.push(value.split(':')[0]);
-                storage.location.push(value.split(':')[1])
+        if (path == "hasSecuritytxt") {
+            if(action == "set") {
+                storage.hasSecuritytxt[Object.keys(value)[0]] = value[Object.keys(value)[0]]
             }
-        };
+        }
         chrome.storage.local.set(storage);
     })
 }
 
 chrome.runtime.onMessage.addListener(function(message, sender, response) {
-    if (message.securityTxt != undefined && message.securityTxt) {
-        if (getSecuritytxt(message.securityTxt[0].domain, message.securityTxt[0].protocol, "/", sender.tab.id) == false) {
-            getSecuritytxt(message.securityTxt[0].domain, message.securityTxt[0].protocol, "/.well-known/", sender.tab.id)
+	locations = ["/security.txt", "/.well-known/security.txt"]
+    if (message.securityTxt != undefined && message.securityTxt.popup == undefined) {
+        for(i = 0; i < locations.length; i++) {
+        	getSecuritytxt(message.securityTxt.root.concat(locations[i]), message.securityTxt.root.split('/')[2], sender.tab.id, i)
+        }
+    }else if (message.securityTxt != undefined && message.securityTxt.popup) {
+        for(i = 0; i < locations.length; i++) {
+            getSecuritytxt(message.securityTxt.root.concat(locations[i]), message.securityTxt.root.split('/')[2], null, i, true)
         }
     }
 })
@@ -58,4 +81,5 @@ chrome.runtime.onMessage.addListener(function(message, sender, response) {
 chrome.storage.onChanged.addListener(function() {
     UpdateStorage()
 });
+
 UpdateStorage();
