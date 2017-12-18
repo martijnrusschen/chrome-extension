@@ -26,7 +26,7 @@ function getSecuritytxt(url, domain, tabid, i, messaged) {
         }
 
         if (new TextDecoder("utf-8").decode(chunk).indexOf("Contact:") > -1) {
-        	response_string = new TextDecoder("utf-8").decode(chunk)
+            response_string = new TextDecoder("utf-8").decode(chunk)
         }
 
         if (typeof messaged == "undefined"){
@@ -42,8 +42,8 @@ function getSecuritytxt(url, domain, tabid, i, messaged) {
         }
 
         return consume(responseReader);
-    	});
-	}
+        });
+    }
     if(storage.blacklist.indexOf(domain) == -1) {
         fetch(url).then(response => {
             chunks = 0
@@ -79,10 +79,10 @@ function UpdateStorage(path, action, value) {
 }
 
 chrome.runtime.onMessage.addListener(function(message, sender, response) {
-	locations = ["/security.txt", "/.well-known/security.txt"]
+    locations = ["/security.txt", "/.well-known/security.txt"]
     if (message.securityTxt != undefined && message.securityTxt.popup == undefined) {
         for(i = 0; i < locations.length; i++) {
-        	getSecuritytxt(message.securityTxt.root.concat(locations[i]), message.securityTxt.root.split('/')[2], sender.tab.id, i)
+            getSecuritytxt(message.securityTxt.root.concat(locations[i]), message.securityTxt.root.split('/')[2], sender.tab.id, i)
         }
     }else if (message.securityTxt != undefined && message.securityTxt.popup) {
         for(i = 0; i < locations.length; i++) {

@@ -28,29 +28,19 @@ function LoadFromStorage() {
             currentWindow: true
         };
         chrome.tabs.query(query, function(result) {
-            domain = result[0].url.split('/')[2];
-            if (storage.hasSecuritytxt.indexOf(domain) > -1) {
-                xhr = new XMLHttpRequest;
-                xhr.timeout = 10000;
-                xhr.ontimeout = function(e) {
-                    document.getElementById("securitytxt-pre").innerHTML = "Error: security.txt file is too big or is taking too long to retrieve.";
-                };
-                xhr.onreadystatechange = function() {
-                    //It shouldn't be possible to XSS this but just in case.
-                    contents = $('<div/>').text(xhr.responseText).html();
-                    document.getElementById("securitytxt-pre").innerHTML = contents;
-                };
-
-                if (storage.location[storage.hasSecuritytxt.indexOf(domain)] == '/') {
-                    xhr.open("GET", result[0].url.split('/')[0] + '//' + domain + '/security.txt');
-                } else {
-                    xhr.open("GET", result[0].url.split('/')[0] + '//' + domain + '/.well-known/security.txt');
-                };
-
-                xhr.send();
-            }
+            domain = result[0].url.split("/")[2]; protocol = result[0].url.split("//")[0]
+            chrome.runtime.sendMessage({
+                "securityTxt": {"root": protocol+"//"+domain, "popup": true}
+            })
         });
     })
 }
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+    if (message.content != undefined) {
+        content = $('<div>').text(message.content).html()
+        document.getElementById("securitytxt-pre").innerHTML = content
+    }
+})
 
 LoadFromStorage();

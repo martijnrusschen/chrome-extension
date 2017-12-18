@@ -1,1 +1,1 @@
-chrome.runtime.sendMessage({"securityTxt": [{"domain":document.domain, "protocol":location.protocol+'//'}]})
+chrome.runtime.sendMessage({"securityTxt": {"root": location.protocol+"//"+document.domain}})

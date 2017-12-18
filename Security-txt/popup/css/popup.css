@@ -18,8 +18,9 @@ body{
 }
 pre{
     text-align: left;
-    font-size: 20px;
+    font-size: 15px;
     white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 div.tab {
