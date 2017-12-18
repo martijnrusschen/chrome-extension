@@ -15,9 +15,15 @@ function changeIcon(tabid, exists) {
 function getSecuritytxt(url, domain, tabid, i, messaged) {
     const consume = responseReader => {
     return responseReader.read().then(result => {
-        if (result.done || chunks > 1) { return; }
+        if (result.done || chunks == 1) { return; }
         const chunk = result.value;
         chunks++
+
+        if(chunk.length > 500){
+            UpdateStorage("blacklist", "add", domain)
+            setTimeout(function(){chrome.runtime.reload()}, 2000)
+            console.warn("Detected a large security.txt file, reloading the extension and blacklisting the domain.")
+        }
 
         if (new TextDecoder("utf-8").decode(chunk).indexOf("Contact:") > -1) {
         	response_string = new TextDecoder("utf-8").decode(chunk)
@@ -38,14 +44,16 @@ function getSecuritytxt(url, domain, tabid, i, messaged) {
         return consume(responseReader);
     	});
 	}
-	fetch(url).then(response => {
-		chunks = 0
-		if (response.status == 200 && response.headers.get("content-type").indexOf("text/plain") > -1 && response.redirected == false) {
-			setTimeout(function(){return consume(response.body.getReader())}, 200)
-		} else {
-            changeIcon(tabid, false)
+    if(storage.blacklist.indexOf(domain) == -1) {
+        fetch(url).then(response => {
+            chunks = 0
+            if (response.status == 200 && response.headers.get("content-type").indexOf("text/plain") > -1 && response.redirected == false) {
+                setTimeout(function(){return consume(response.body.getReader())}, 200)
+            } else {
+                changeIcon(tabid, false)
+            }
         }
-	})
+    )}
 }
 
 function UpdateStorage(path, action, value) {
@@ -53,12 +61,17 @@ function UpdateStorage(path, action, value) {
         storage = callback;
         if (Object.keys(storage).length == 0) {
             chrome.storage.local.set({
-                "hasSecuritytxt": {}
+                "hasSecuritytxt": {},
+                "blacklist": []
             })
         };
         if (path == "hasSecuritytxt") {
             if(action == "set") {
                 storage.hasSecuritytxt[Object.keys(value)[0]] = value[Object.keys(value)[0]]
+            }
+        }else if (path == "blacklist") {
+            if (action == "add") {
+                storage.blacklist.push(value)
             }
         }
         chrome.storage.local.set(storage);
